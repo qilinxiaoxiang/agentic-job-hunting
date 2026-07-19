@@ -1,0 +1,11 @@
+{
+  "company": "Northstar Systems",
+  "role": "Applied AI Delivery Engineer",
+  "source_url": "https://example.com/jobs/applied-ai-delivery",
+  "outcomes": [
+    "Own customer workflow discovery and production integration",
+    "Build evaluation and observable failure recovery",
+    "Learn unfamiliar domains and deliver reviewed prototypes"
+  ],
+  "keywords": ["customer workflow", "integration", "evaluation", "failure recovery", "prototype"]
+}

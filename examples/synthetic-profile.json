@@ -1,0 +1,33 @@
+{
+  "display_name": "Jordan Lee",
+  "evidence": [
+    {
+      "id": "delivery",
+      "signal": "accepted customer delivery",
+      "claim": "Owned a customer workflow from discovery through integration, measured evaluation, deployment, and signed acceptance.",
+      "source": "examples/evidence.md#customer-delivery",
+      "support": "The synthetic engagement record covers discovery, integration, evaluation, deployment, and acceptance."
+    },
+    {
+      "id": "reliability",
+      "signal": "observable failure recovery",
+      "claim": "Added evaluation, observable failure states, retry-safe writes, and human approval to a production support workflow.",
+      "source": "examples/evidence.md#reliability",
+      "support": "The synthetic reliability record documents evaluation, visible failures, safe retries, and approval."
+    },
+    {
+      "id": "learning",
+      "signal": "rapid domain learning",
+      "claim": "Entered an unfamiliar logistics domain, mapped its operating rules, and delivered a reviewed prototype in four weeks.",
+      "source": "examples/evidence.md#learning",
+      "support": "The synthetic project record dates domain entry and prototype review four weeks apart."
+    },
+    {
+      "id": "unrelated",
+      "signal": "visual design",
+      "claim": "Created a small illustration library for an internal design workshop.",
+      "source": "examples/evidence.md#design",
+      "support": "The synthetic workshop record lists the illustration library."
+    }
+  ]
+}
