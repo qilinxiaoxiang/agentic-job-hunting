@@ -1,5 +1,6 @@
 # Repository instructions
 
+- Read `README.md` and `docs/AI-MAINTAINER-GUIDE.md` before modifying the pipeline.
 - Use only synthetic profiles and job descriptions.
 - Preserve the terminal boundary at a reviewed local material pack.
 - Every employer-facing claim must map to one repository-relative evidence source and exact support.

@@ -1,20 +1,89 @@
 # Agentic Job Hunting
 
-A synthetic, evidence-constrained reference pipeline for turning a live job description into a
-reviewed application material pack.
+An evidence-constrained job-search operating system built around autonomous agents, deterministic
+release gates, and selective human control.
 
-The pipeline discovers or imports a role, fingerprints it for deduplication, screens fit, selects
-only source-backed candidate evidence, builds a role-specific narrative, and runs two independent
-reviews. The ordinary reviewer can inspect the evidence graph. The cold reader receives only the
-job description and final material, so familiarity with private context cannot hide unclear prose.
+This repository is the privacy-safe, reproducible core of a larger system that runs the job-search
+loop from sourcing through ATS-confirmed submission. The public code demonstrates the part that is
+hardest to fake safely: deduplication, role screening, evidence selection, claim traceability,
+independent review, and a fail-closed material pack. The production deployment adds scheduled
+sourcing agents, a live portal, per-role resume generation, browser execution, status sync, and a
+measured improvement loop.
 
-The public pipeline deliberately stops at `reviewed_material_pack`. It contains no account
-creation, inbox codes, browser automation, form submission, real applications, or personal data.
+The operating model follows [Software Is Switching Operators](https://shawnxiang.com/articles/agentic-life-os/):
+a person sets the objective and legal boundaries; agents do the bounded operational work;
+deterministic code protects state and evidence; the interface becomes a place to inspect, approve,
+and intervene.
 
-This is one application of the operating model in
-[Software Is Switching Operators](https://shawnxiang.com/articles/agentic-life-os/): a person sets
-the goal and legal boundaries, agents prepare bounded work, deterministic checks enforce evidence,
-and reviewers decide whether the material is ready.
+## What the complete system does
+
+The production deployment is an always-on, multi-agent funnel:
+
+1. **Source**: a headless scanner checks public ATS feeds and company pages at 07:00 ET. Separate
+   agents scan rejection mail at 07:30 and job digests or recruiter outreach at 07:45.
+2. **Screen**: live job descriptions are reopened, fingerprinted, deduplicated, checked against
+   work-authorization and compensation rules, and ranked by role fit.
+3. **Tailor**: a capability architect selects from a canonical evidence graph, creates a per-role
+   interview thesis, and produces a fresh resume and, when useful, a cover letter.
+4. **Review**: an evidence-aware adversarial reviewer tries to refute every claim. A separate cold
+   reader sees only the job description and final material, then checks whether an employer can
+   understand the candidate without hidden context.
+5. **Submit**: the private deployment fills the ATS, verifies the active page and uploaded files,
+   stops at CAPTCHA or legal commitments, and records an application only after an authoritative
+   success signal.
+6. **Observe**: a web portal exposes the candidate queue, scanner health, application state, exact
+   submitted artifacts, and one-click review pages for human spot checks.
+7. **Improve**: every batch records stage timings and failure modes. Reviewer findings and the
+   largest operational bottleneck are written back to the earliest reusable guardrail.
+
+The 08:00 ET run is the main application batch. A 13:00 run reads the same 04:00-cutoff execution
+ledger and works only on an unfinished processing or submission goal. A completed morning run makes
+the afternoon run a no-op.
+
+## Review and Tailor co-evolution
+
+Review findings become training data for the workflow. Proofreading is only the immediate effect.
+
+1. Reviewers return machine-readable `upstream_writeback` entries with a reusable failure code,
+   the mechanism layer that failed, and the earliest prevention gate.
+2. General failures move into the Tailor's failure-pattern catalogue and then into the relevant
+   claim preflight, story contract, renderer, validator, or test. Company-specific preferences and
+   genuine candidate gaps stay out of the global rules.
+3. The scheduled batch measures every material stage in SQLite, reports the daily Pareto and a
+   trailing 14-day throughput/p95 trend, and permits at most one upstream process change per day.
+4. A change remains `pending` until the next applicable real application validates it. Unit tests
+   prove that the mechanism runs; they do not prove that the workflow improved.
+
+This creates a controlled spiral: Tailor produces a stronger artifact, Reviewer finds a new failure
+shape, the failure becomes an upstream mechanism, and the next real target tests whether it was
+actually removed.
+
+## Operating proof
+
+On 2026-07-19, the production main run processed 11 candidates, completed five ATS-confirmed
+applications, and recorded six evidence-based skips. Each successful application retained the exact
+submitted resume, job-description snapshot, and available review artifacts; all five item pages and
+resume links passed live HTTP checks. The run also validated the previous pending process change on
+a real application. At 13:00, the catch-up agent read 11/11 processed, 5/5 applied, zero open timers,
+and a complete audit, then correctly did no additional work.
+
+Those are scoped results from the private production ledger, not benchmark results generated by this
+public repository and not a promise of daily hiring throughput.
+
+## Public reference vs. production deployment
+
+| Layer | This public repository | Private production deployment |
+|---|---|---|
+| Data | Synthetic profile, job description, and evidence | Live job descriptions, personal evidence graph, application ledger |
+| Sourcing | Import one role through the CLI | Scheduled web, ATS, email, and recruiter-source agents |
+| Tailoring | Deterministic evidence ranking and material generation | Per-JD capability contract, resume PDF, optional cover letter |
+| Review | Evidence-aware review plus context-blind cold reading | Independent resume and letter agents, artifact hashes, revision loop |
+| Submission | Hard stop at `reviewed_material_pack` | Browser-assisted ATS execution after explicit standing authorization |
+| Operations | Local SQLite target ledger | Portal, scanner health, batch telemetry, status sync, human spot checks |
+
+The boundary is intentional. This repository contains no credentials, inbox access, browser
+submission, real applications, or personal profile. It is safe to clone, inspect, and run without
+granting an agent external authority.
 
 ## Reproducible demo
 
@@ -25,30 +94,79 @@ python3 -m venv .venv
   --profile examples/synthetic-profile.json \
   --jd examples/synthetic-jd.json \
   --output /tmp/agentic-job-demo
-.venv/bin/pytest
-.venv/bin/python scripts/privacy_check.py
 ```
 
-The output contains:
+The builder executes this public flow:
 
-- `strategy.json` — role outcomes, fit, selected/omitted evidence, and interview reason.
-- `material.txt` — the employer-facing synthetic material.
-- `claim-sources.json` — every visible claim and its source/support.
-- `review.json` — evidence-aware review.
-- `cold-reader.json` — blind comprehension review.
-- `application-pack.json` — hashes and the terminal public state.
+1. Fingerprint the company, role, and source URL in a SQLite target ledger.
+2. Refuse a duplicate target.
+3. Require every candidate claim to include a repository-relative source and exact support.
+4. Rank evidence against the job outcomes and reject weak matches.
+5. Build the material, strategy, and claim-source graph.
+6. Run evidence-aware and blind cold-reader reviews.
+7. Hash the reviewed artifacts and emit either `reviewed_material_pack` or `blocked`.
 
-If any visible claim lacks support, either review fails, an unexplained term remains, or the role is
-weakly matched, the builder refuses to mark the pack ready.
+The output directory contains:
 
-## Design boundaries
+- `strategy.json`: job outcomes, selected and omitted evidence, and the terminal boundary.
+- `material.txt`: employer-facing synthetic material.
+- `claim-sources.json`: every visible claim with its source and support.
+- `review.json`: evidence and outcome-coverage review.
+- `cold-reader.json`: blind comprehension review with no private authoring context.
+- `application-pack.json`: final state, submission authorization, and artifact SHA-256 values.
+- `targets.sqlite`: the deduplicated local target ledger.
 
-- The ledger identifies duplicates by normalized company, role, and source URL.
-- Fit scoring is transparent and intentionally small; it is a screen, not a prediction of hiring.
-- Content generation is template-based in this public demo. A model can replace the drafting step
-  only if the same claim-source and review contracts remain enforced.
-- The cold-reader function has no profile or evidence parameter by design.
-- The final pack is not an authorization to contact anyone or mutate an external system.
+If a visible claim lacks support, the fit is too weak, a review fails, or the cold reader finds an
+unexplained term, the builder refuses to mark the pack ready. Even a ready public pack sets
+`external_submission_authorized` to `false`.
+
+## Engineering decisions
+
+- **Evidence before prose**: every visible claim must resolve to exact source support. A fluent
+  sentence cannot compensate for missing evidence.
+- **Independent judgment**: the authoring path and the blind reader receive different inputs, so
+  hidden knowledge cannot rescue unclear material.
+- **Deterministic authority boundary**: agents may prepare local artifacts; the manifest never
+  grants permission to contact an employer.
+- **Idempotent state**: normalized fingerprints prevent the same target from entering the local
+  ledger twice.
+- **Content-addressed handoff**: the terminal manifest binds review state to exact artifact hashes.
+- **Privacy by construction**: the demo uses synthetic data, repository-relative evidence, and a
+  repository-wide privacy/secret scan.
+
+The current public implementation uses small, transparent lexical screens and template-based
+material generation. It is a reference contract rather than a hiring-outcome predictor. A model can
+replace the drafting step if the same evidence, review, privacy, and authority boundaries remain
+enforced.
+
+## Built for AI maintenance
+
+The repository is documented as an operating surface for both people and coding agents. Start with
+[the AI maintainer guide](docs/AI-MAINTAINER-GUIDE.md) for the read order, invariants, extension
+points, safe change loop, and release checks.
+
+Run the complete local acceptance suite with one command:
+
+```bash
+bash scripts/verify.sh
+```
+
+It runs lint, tests, the synthetic demo, privacy/secret scanning, and output-contract checks.
+
+## Repository map
+
+```text
+src/agentic_job_hunting/
+  pipeline.py          orchestration, evidence selection, artifacts, release state
+  ledger.py            target fingerprinting and SQLite state
+  review.py            evidence-aware and blind-review contracts
+  cli.py               public command-line entry point
+examples/               synthetic profile, JD, and evidence
+tests/                  behavioral and boundary tests
+scripts/privacy_check.py repository privacy and secret denylist
+scripts/verify.sh       one-command acceptance suite
+docs/AI-MAINTAINER-GUIDE.md
+```
 
 ## License
 
